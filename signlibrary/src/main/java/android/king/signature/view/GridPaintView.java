@@ -16,6 +16,9 @@ import android.king.signature.pen.BasePen;
 import android.king.signature.pen.SteelPen;
 import android.king.signature.util.BitmapUtil;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  * 田字格手写画板
@@ -83,8 +86,7 @@ public class GridPaintView extends View {
 
     private void initCanvas() {
         mCanvas = new Canvas(mBitmap);
-        //设置画布的颜色的问题
-        mCanvas.drawColor(Color.TRANSPARENT);
+        mCanvas.drawColor(Color.BLACK);
     }
 
 
@@ -136,7 +138,7 @@ public class GridPaintView extends View {
      * 清除画布
      */
     public void reset() {
-        mBitmap.eraseColor(Color.TRANSPARENT);
+        mBitmap.eraseColor(Color.BLACK);
         hasDraw = false;
         mStokeBrushPen.clear();
         invalidate();
@@ -154,8 +156,8 @@ public class GridPaintView extends View {
 
     public WriteListener mGetWriteListener;
 
-    public void setGetTimeListener(WriteListener l) {
-        mGetWriteListener = l;
+    public void setGetTimeListener(WriteListener lsn) {
+        mGetWriteListener = lsn;
     }
 
 
@@ -216,6 +218,35 @@ public class GridPaintView extends View {
             result = BitmapUtil.clearLRBlank(result, 10, Color.TRANSPARENT);
         }
         return result;
+    }
+
+    public List<Bitmap> buildBitmaps() {
+        // build所有笔画
+        List<Bitmap> bms = new ArrayList<>();
+        for (int i = 0; i < mStokeBrushPen.getStrokeCnt(); i++) {
+            bms.add(buildStokeBitmap(i));
+            bms.add(buildStoneBitmap(i));
+        }
+        return bms;
+    }
+
+    private Bitmap buildStokeBitmap(int index) {
+        // build一个笔画
+        Bitmap tmpBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_8888);
+        Canvas tmpCanvas = new Canvas(tmpBitmap);
+        tmpCanvas.drawColor(Color.BLACK);
+        mStokeBrushPen.drawStoke(tmpCanvas, index);
+        return tmpBitmap;
+    }
+
+    private Bitmap buildStoneBitmap(int index) {
+        // build一个笔画的骨架
+        Bitmap tmpBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_8888);
+        Canvas tmpCanvas = new Canvas(tmpBitmap);
+        //设置画布的颜色的问题
+        tmpCanvas.drawColor(Color.BLACK);
+        mStokeBrushPen.drawStone(tmpCanvas, index);
+        return tmpBitmap;
     }
 
 }

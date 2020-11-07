@@ -6,6 +6,8 @@ import android.graphics.RectF;
 
 import android.king.signature.config.ControllerPoint;
 
+import java.util.List;
+
 
 /**
  * 钢笔
@@ -17,10 +19,24 @@ public class SteelPen extends BasePen {
 
     @Override
     protected void doPreDraw(Canvas canvas) {
-        for (int i = 1; i < mHWPointList.size(); i++) {
-            ControllerPoint point = mHWPointList.get(i);
-            drawToPoint(canvas, point, mPaint);
-            mCurPoint = point;
+        for (List<ControllerPoint> pts : mStrokeList) {
+            if (pts.isEmpty()) {
+                continue;
+            }
+            mCurPoint = pts.get(0);
+            for (int i = 1; i < pts.size(); i++) {
+                ControllerPoint pt = pts.get(i);
+                drawToPoint(canvas, pt, mPaint);
+                mCurPoint = pt;
+            }
+        }
+        if (!mHWPointList.isEmpty()) {
+            mCurPoint = mHWPointList.get(0);
+            for (int i = 1; i < mHWPointList.size(); i++) {
+                ControllerPoint point = mHWPointList.get(i);
+                drawToPoint(canvas, point, mPaint);
+                mCurPoint = point;
+            }
         }
     }
 

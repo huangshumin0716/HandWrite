@@ -2,6 +2,7 @@ package android.king.signature.pen;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.king.signature.config.ControllerStrokes;
 import android.view.MotionEvent;
 
 import android.king.signature.util.Bezier;
@@ -10,6 +11,7 @@ import android.king.signature.config.MotionElement;
 import android.king.signature.config.PenConfig;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 画笔基类
@@ -23,7 +25,10 @@ public abstract class BasePen {
      */
     public static final int STEP_FACTOR = 20;
 
-    protected ArrayList<ControllerPoint> mHWPointList = new ArrayList<>();
+    // TODO: 改变点的存储，每一个笔画是一个list，数据包括down点，move点，up点
+    protected ControllerStrokes mStrokeList = new ControllerStrokes();
+
+    protected List<ControllerPoint> mHWPointList = new ArrayList<>();
     protected ControllerPoint mLastPoint = new ControllerPoint(0, 0);
     protected Paint mPaint;
 
@@ -42,6 +47,32 @@ public abstract class BasePen {
     public void setPaint(Paint paint) {
         mPaint = paint;
         mBaseWidth = paint.getStrokeWidth();
+    }
+
+    public int getStrokeCnt() {
+        return mStrokeList.size();
+    }
+
+    public void drawStoke(Canvas canvas, int strokeIndex) {
+        if (strokeIndex<0 || strokeIndex>mStrokeList.size()) {
+            // 错误，strokeIndex越界
+            return;
+        }
+        mHWPointList = mStrokeList.get(strokeIndex);
+        draw(canvas);
+    }
+
+    public void drawStone(Canvas canvas, int strokeIndex) {
+        if (0>strokeIndex || strokeIndex> mStrokeList.size()) {
+            return;
+        }
+        List<ControllerPoint> pts = mStrokeList.get(strokeIndex);
+        ControllerPoint curPos = pts.get(0);
+        for (int i = 1; i < pts.size(); i++) {
+            ControllerPoint pt = pts.get(i);
+            canvas.drawLine(curPos.x, curPos.y, pt.x, pt.y, mPaint);
+            curPos = pt;
+        }
     }
 
     public void draw(Canvas canvas) {
@@ -177,7 +208,9 @@ public abstract class BasePen {
             mHWPointList.add(point);
         }
         draw(canvas);
-        clear();
+        mStrokeList.add(mHWPointList);
+
+        mHWPointList.clear();
     }
 
     /**
@@ -204,7 +237,7 @@ public abstract class BasePen {
      * 清除缓存的触摸点
      */
     public void clear() {
-        mHWPointList.clear();
+        mStrokeList.clear();
     }
 
     /**

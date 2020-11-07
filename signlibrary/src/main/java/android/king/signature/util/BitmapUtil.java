@@ -182,6 +182,37 @@ public class BitmapUtil {
         return bitmap;
     }
 
+    public static String saveImage(Context context, String fileName, Bitmap bmp) {
+        if (bmp == null) {
+            return null;
+        }
+        FileOutputStream fos = null;
+        try {
+            String appDir = context.getExternalCacheDir().getAbsolutePath();
+            File saveDir = new File(appDir, "zha");
+            if (!saveDir.exists()) {
+                saveDir.mkdirs();
+            }
+            File file = new File(saveDir, fileName);
+            fos = new FileOutputStream(file);
+            bmp.compress(Bitmap.CompressFormat.PNG, 100, fos);
+            fos.flush();
+            return file.getAbsolutePath();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return null;
+    }
     /**
      * 保存图像到本地
      *

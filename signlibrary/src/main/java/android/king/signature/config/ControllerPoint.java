@@ -35,4 +35,8 @@ public class ControllerPoint {
         this.y = point.y;
         this.width = point.width;
     }
+
+    public String toString() {
+        return String.format("(%.2f, %.2f, %.2f, %d)", x, y, width, alpha);
+    }
 }

@@ -32,6 +32,12 @@ import android.king.signature.view.HVScrollView;
 import android.king.signature.view.HandWriteEditView;
 import android.king.signature.view.PaintSettingWindow;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.List;
+
 
 /***
  * 名称：GridWriteActivity<br>
@@ -165,7 +171,8 @@ public class GridPaintActivity extends BaseActivity implements View.OnClickListe
 
             @Override
             public void onWriteCompleted(long time) {
-                mHandler.sendEmptyMessageDelayed(MSG_WRITE_OK, 1000);
+                // 有3秒没写东西，认为写完了
+                mHandler.sendEmptyMessageDelayed(MSG_WRITE_OK, 3000);
             }
         });
 
@@ -184,15 +191,16 @@ public class GridPaintActivity extends BaseActivity implements View.OnClickListe
         if (bgColor != Color.TRANSPARENT) {
             mTextContainer.setBackgroundColor(bgColor);
         }
-        mEditView.addTextWatcher(s -> {
-            if (s != null && s.length() > 0) {
-                mClearView.setEnabled(true);
-                mClearView.setImage(R.drawable.sign_ic_clear, PenConfig.THEME_COLOR);
-            } else {
-                mClearView.setEnabled(false);
-                mClearView.setImage(R.drawable.sign_ic_clear, Color.LTGRAY);
-            }
-        });
+//        mEditView.addTextWatcher(s -> {
+//            if (s != null && s.length() > 0) {
+//                mClearView.setEnabled(true);
+//                mClearView.setImage(R.drawable.sign_ic_clear, PenConfig.THEME_COLOR);
+//            } else {
+//                mClearView.setEnabled(false);
+//                mClearView.setImage(R.drawable.sign_ic_clear, Color.LTGRAY);
+//            }
+//        });
+        mEditView.setText("现在只写汉字:渣\r\n写好一个后按回车键保存");
     }
 
     @Override
@@ -268,10 +276,10 @@ public class GridPaintActivity extends BaseActivity implements View.OnClickListe
      * 保存
      */
     private void save() {
-        if (mEditView.getText() == null || mEditView.getText().length() == 0) {
-            Toast.makeText(getApplicationContext(), "没有写入任何文字", Toast.LENGTH_SHORT).show();
-            return;
-        }
+//        if (mEditView.getText() == null || mEditView.getText().length() == 0) {
+//            Toast.makeText(getApplicationContext(), "没有写入任何文字", Toast.LENGTH_SHORT).show();
+//            return;
+//        }
         //先检查是否有存储权限
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
@@ -281,14 +289,56 @@ public class GridPaintActivity extends BaseActivity implements View.OnClickListe
         if (mSaveProgressDlg == null) {
             initSaveProgressDlg();
         }
-        mEditView.clearFocus();
-        mEditView.setCursorVisible(false);
+//        mEditView.clearFocus();
+//        mEditView.setCursorVisible(false);
 
         mSaveProgressDlg.show();
         new Thread(() -> {
+            // TODO：保存时不仅要保存最终的图片，还需要保存每一笔的骨架，每一笔的图片
+            // TODO: getWriteBitmap将返回List<Bitmap>, 每笔两幅图，一副骨架图，一副笔画图
+            // TODO: 笔画的骨架，设想为移动中心轨迹，
+            // TODO: 笔画的图片，在骨架的基础上，考虑移动速度，按压大小进行膨胀
+            FileOutputStream fos = null;
+            try {
+                if (null != mPaintView) {
+                    String appDir = GridPaintActivity.this.getExternalCacheDir().getAbsolutePath();
+                    File saveDir = new File(appDir, "zha");
+                    if (!saveDir.exists()) {
+                        saveDir.mkdirs();
+                    }
+                    String fileName = System.currentTimeMillis() + "-";
+                    List<Bitmap> stokeImages = mPaintView.buildBitmaps();
+                    int quality = 100;
+                    for (int i = 0; i < stokeImages.size() / 2; i++) {
+                        File fileStoke = new File(saveDir, fileName + i +"stoke.png" );
+                        fos = new FileOutputStream(fileStoke);
+                        stokeImages.get(i*2).compress(Bitmap.CompressFormat.PNG, quality, fos);
+                        fos.flush();
+                        fos.close();
+                        File fileStone = new File(saveDir, fileName + i +"stone.png" );
+                        fos = new FileOutputStream(fileStone);
+                        stokeImages.get(i*2).compress(Bitmap.CompressFormat.PNG, quality, fos);
+                        fos.flush();
+                        fos.close();
+                    }
+                }
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (fos != null) {
+                    try {
+                        fos.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
             if (PenConfig.FORMAT_JPG.equals(format) && bgColor == Color.TRANSPARENT) {
                 bgColor = Color.WHITE;
             }
+            // TODO：从GridPainView中获取Bitmap列表
             Bitmap bm = getWriteBitmap(bgColor);
             bm = BitmapUtil.clearBlank(bm, 20, bgColor);
 
@@ -349,8 +399,9 @@ public class GridPaintActivity extends BaseActivity implements View.OnClickListe
         } else if (i == R.id.tv_ok) {
             save();
         } else if (i == R.id.enter) {
-            Editable editable = mEditView.getText();
-            editable.insert(mEditView.getSelectionStart(), "\n");
+            save();
+//            Editable editable = mEditView.getText();
+//            editable.insert(mEditView.getSelectionStart(), "\n");
         } else if (i == R.id.space) {
             mEditView.addSpace(fontSize);
         } else if (i == R.id.clear) {
